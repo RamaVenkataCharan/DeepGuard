@@ -88,3 +88,4 @@ backend/migrations/versions/*.pyc
 *.bak
 *.tmp
 *.temp
+*.db
