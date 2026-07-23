@@ -8,7 +8,7 @@ from app.extensions import db
 class MeterReading(db.Model):
     __tablename__ = "meter_readings"
 
-    id = db.Column(db.BigInteger, primary_key=True, autoincrement=True)
+    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
     meter_id = db.Column(db.Integer, db.ForeignKey("meters.id", ondelete="CASCADE"), nullable=False)
     customer_id = db.Column(db.Integer, db.ForeignKey("customers.id", ondelete="CASCADE"), nullable=False)
     timestamp = db.Column(db.DateTime, nullable=False, index=True)

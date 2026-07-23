@@ -46,6 +46,13 @@ def create_app(config_name=None):
     api.register_blueprint(reports_blp)
     api.register_blueprint(weather_blp)
     
+    # Register error handlers and request logging middleware
+    from app.utils.error_handlers import register_error_handlers
+    from app.middleware.request_logger import setup_request_logging
+    
+    register_error_handlers(app)
+    setup_request_logging(app)
+    
     # Create database tables if in dev mode
     with app.app_context():
         if config_name == "development":
