@@ -1,0 +1,90 @@
+# ============================================================
+# DeepGuard .gitignore
+# ============================================================
+
+# ---------- Python ----------
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+*.egg-info/
+dist/
+build/
+*.egg
+.eggs/
+*.whl
+pip-wheel-metadata/
+*.pyo
+*.pyd
+
+# Virtual environments
+venv/
+.venv/
+env/
+.env
+
+# ---------- ML Artifacts ----------
+ml/artifacts/*.h5
+ml/artifacts/*.keras
+ml/artifacts/*.pkl
+ml/artifacts/*.joblib
+ml/data/raw/*.csv
+ml/data/processed/*.csv
+ml/data/processed/*.npy
+
+# ---------- Node.js ----------
+node_modules/
+frontend/node_modules/
+frontend/dist/
+frontend/.cache/
+*.tsbuildinfo
+
+# ---------- IDE ----------
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.project
+.classpath
+.settings/
+
+# ---------- OS ----------
+.DS_Store
+Thumbs.db
+Desktop.ini
+*.lnk
+
+# ---------- Docker ----------
+docker-compose.override.yml
+
+# ---------- Logs ----------
+*.log
+logs/
+
+# ---------- Reports ----------
+backend/reports/*.pdf
+backend/reports/*.csv
+
+# ---------- Testing ----------
+.coverage
+htmlcov/
+.pytest_cache/
+coverage/
+
+# ---------- Environment ----------
+.env
+.env.local
+.env.production
+.env.staging
+
+# ---------- Database ----------
+*.sql.bak
+
+# ---------- Alembic ----------
+backend/migrations/versions/*.pyc
+
+# ---------- Misc ----------
+*.bak
+*.tmp
+*.temp

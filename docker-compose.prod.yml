@@ -1,0 +1,153 @@
+version: "3.8"
+
+services:
+  # ---- MySQL 8 (Production) ----
+  mysql:
+    image: mysql:8.0
+    container_name: deepguard-mysql-prod
+    restart: always
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+      MYSQL_DATABASE: ${MYSQL_DATABASE}
+      MYSQL_USER: ${MYSQL_USER}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD}
+    volumes:
+      - mysql_data_prod:/var/lib/mysql
+      - ./database/schema.sql:/docker-entrypoint-initdb.d/01-schema.sql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-p${MYSQL_ROOT_PASSWORD}"]
+      interval: 15s
+      timeout: 10s
+      retries: 5
+    networks:
+      - deepguard-net
+    deploy:
+      resources:
+        limits:
+          memory: 1G
+
+  # ---- Redis (Production) ----
+  redis:
+    image: redis:7-alpine
+    container_name: deepguard-redis-prod
+    restart: always
+    command: redis-server --appendonly yes --maxmemory 256mb --maxmemory-policy allkeys-lru
+    volumes:
+      - redis_data_prod:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 15s
+      timeout: 10s
+      retries: 5
+    networks:
+      - deepguard-net
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+
+  # ---- Flask Backend (Gunicorn) ----
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile.prod
+    container_name: deepguard-backend-prod
+    restart: always
+    env_file:
+      - .env
+    environment:
+      FLASK_ENV: production
+      DEBUG: "false"
+    volumes:
+      - ./ml/artifacts:/ml/artifacts:ro
+      - backend_reports_prod:/app/reports
+    depends_on:
+      mysql:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    command: gunicorn --bind 0.0.0.0:5000 --workers 4 --threads 2 --timeout 120 --access-logfile - --error-logfile - wsgi:app
+    networks:
+      - deepguard-net
+    deploy:
+      resources:
+        limits:
+          memory: 1G
+
+  # ---- Celery Worker (Production) ----
+  celery-worker:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile.prod
+    container_name: deepguard-celery-worker-prod
+    restart: always
+    env_file:
+      - .env
+    environment:
+      FLASK_ENV: production
+    volumes:
+      - ./ml/artifacts:/ml/artifacts:ro
+      - backend_reports_prod:/app/reports
+    depends_on:
+      mysql:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    command: celery -A app.tasks worker --loglevel=warning --concurrency=4 --max-tasks-per-child=100
+    networks:
+      - deepguard-net
+    deploy:
+      resources:
+        limits:
+          memory: 1G
+
+  # ---- Celery Beat (Production) ----
+  celery-beat:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile.prod
+    container_name: deepguard-celery-beat-prod
+    restart: always
+    env_file:
+      - .env
+    environment:
+      FLASK_ENV: production
+    depends_on:
+      mysql:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    command: celery -A app.tasks beat --loglevel=warning
+    networks:
+      - deepguard-net
+
+  # ---- Nginx Reverse Proxy ----
+  nginx:
+    image: nginx:1.25-alpine
+    container_name: deepguard-nginx
+    restart: always
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./infra/nginx/default.conf:/etc/nginx/conf.d/default.conf:ro
+      - ./frontend/dist:/usr/share/nginx/html:ro
+      - nginx_logs:/var/log/nginx
+    depends_on:
+      - backend
+    networks:
+      - deepguard-net
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+
+volumes:
+  mysql_data_prod:
+  redis_data_prod:
+  backend_reports_prod:
+  nginx_logs:
+
+networks:
+  deepguard-net:
+    driver: bridge
