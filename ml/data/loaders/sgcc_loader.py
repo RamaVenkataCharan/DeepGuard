@@ -46,7 +46,7 @@ def load_sgcc_dataset(
         logger.warning(
             "SGCC dataset not found at %s. Generating synthetic data.", filepath
         )
-        return generate_synthetic_sgcc(n_customers=1000, n_days=1035, seed=42)
+        return generate_synthetic_sgcc(n_customers=20, n_days=50, seed=42)
 
     logger.info("Loading SGCC dataset from %s", filepath)
     df = pd.read_csv(filepath)
