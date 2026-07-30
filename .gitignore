@@ -24,10 +24,7 @@ env/
 .env
 
 # ---------- ML Artifacts ----------
-ml/artifacts/*.h5
-ml/artifacts/*.keras
-ml/artifacts/*.pkl
-ml/artifacts/*.joblib
+ml/artifacts/
 ml/data/raw/*.csv
 ml/data/processed/*.csv
 ml/data/processed/*.npy
