@@ -17,7 +17,7 @@ from ml.preprocessing.normalization import CustomerScaler
 from ml.preprocessing.sequence_builder import create_sequences
 from ml.preprocessing.feature_engineering import compute_consumption_stats
 from ml.models.risk_score import calculate_risk_score
-from ml.models.transformer_model import PositionalEncoding
+from ml.models.transformer_model import SinusoidalPositionalEncoding
 
 _model = None
 _scaler = None
@@ -40,7 +40,7 @@ def init_inference_assets(model_path=None, scaler_path=None):
         logger.info(f"Loading Keras Fusion Model from {model_path}")
         _model = tf.keras.models.load_model(
             str(model_path), 
-            custom_objects={"PositionalEncoding": PositionalEncoding}
+            custom_objects={"SinusoidalPositionalEncoding": SinusoidalPositionalEncoding}
         )
 
 def predict_customer_risk(
