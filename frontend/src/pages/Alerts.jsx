@@ -125,6 +125,17 @@ const Alerts = () => {
         </div>
       </div>
 
+      {/* ⚠️ Conditional Synthetic Demo Banner */}
+      {[...activeAlerts, ...resolvedAlerts].some(a => a.data_source === 'synthetic_demo') && (
+        <div className="bg-amber-950/40 border border-amber-500/30 text-amber-200 px-5 py-4 rounded-2xl flex items-center gap-3">
+          <span className="text-xl">⚠️</span>
+          <div className="text-left">
+            <span className="font-bold text-sm block">NOTICE: Running on Synthetic Demo Data</span>
+            <p className="text-xs text-amber-300/80">These metrics demonstrate pipeline flow correctness and should not be used for production operations.</p>
+          </div>
+        </div>
+      )}
+
       {/* Row: Active Alerts */}
       <div className="glass-panel p-6 rounded-2xl space-y-6">
         <div className="flex items-center space-x-2">
