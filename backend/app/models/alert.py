@@ -1,6 +1,7 @@
 """
 Alert ORM Model.
 Represents alerts generated when customer risk levels cross critical thresholds.
+Includes data source tracking (synthetic vs real) and feature explanations.
 """
 from datetime import datetime
 from app.extensions import db
@@ -18,6 +19,11 @@ class Alert(db.Model):
     resolved_by = db.Column(db.Integer, db.ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
     resolved_at = db.Column(db.DateTime, nullable=True)
     notes = db.Column(db.Text, nullable=True)
+    
+    # Audit & ML Ingestion Metadata
+    data_source = db.Column(db.String(50), nullable=False, default="real_sgcc", index=True)
+    contributing_features = db.Column(db.JSON, nullable=True)
+    
     created_at = db.Column(db.DateTime, nullable=False, default=datetime.utcnow, index=True)
     updated_at = db.Column(db.DateTime, nullable=False, default=datetime.utcnow, onupdate=datetime.utcnow)
 
@@ -38,6 +44,8 @@ class Alert(db.Model):
             "resolved_by": self.resolved_by,
             "resolved_at": self.resolved_at.isoformat() if self.resolved_at else None,
             "notes": self.notes,
+            "data_source": self.data_source,
+            "contributing_features": self.contributing_features,
             "created_at": self.created_at.isoformat(),
             "updated_at": self.updated_at.isoformat()
         }

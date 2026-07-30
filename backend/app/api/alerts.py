@@ -53,7 +53,11 @@ class UpdateAlertStatusView(MethodView):
         if status not in ["open", "investigating", "resolved", "false_positive"]:
             abort(400, message="Invalid alert status code.")
             
-        alert = AlertService.update_alert_status(alert_id, status, user_id, notes)
+        try:
+            alert = AlertService.update_alert_status(alert_id, status, user_id, notes)
+        except ValueError as e:
+            abort(400, message=str(e))
+            
         return {
             "message": "Alert status updated successfully.",
             "alert": alert.to_dict()
