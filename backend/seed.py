@@ -35,19 +35,69 @@ def seed_database():
         db.session.add_all([admin, analyst, viewer])
         db.session.commit()
         
-        # 2. Seed Customers
-        print("Seeding Customers...")
+        # 2. Seed Customers with Smart Meter Utility Fields
+        print("Seeding Smart Meter Utility Customers...")
         customers = [
-            Customer(id=1, customer_code='CUST-001', name='Rajesh Kumar', address='45 MG Road, Sector 12', region='North Delhi', city='New Delhi', account_status='active', connection_type='residential'),
-            Customer(id=2, customer_code='CUST-002', name='Priya Sharma', address='123 Gandhi Nagar, Block B', region='South Delhi', city='New Delhi', account_status='active', connection_type='residential'),
-            Customer(id=3, customer_code='CUST-003', name='TechPark Solutions', address='500 IT Park, Phase II', region='Gurgaon', city='Gurgaon', account_status='active', connection_type='commercial'),
-            Customer(id=4, customer_code='CUST-004', name='Amit Patel', address='78 Nehru Colony', region='East Delhi', city='New Delhi', account_status='active', connection_type='residential'),
-            Customer(id=5, customer_code='CUST-005', name='GreenLeaf Textiles', address='200 Industrial Area, Plot 15', region='Noida', city='Noida', account_status='active', connection_type='industrial'),
-            Customer(id=6, customer_code='CUST-006', name='Sunita Verma', address='33 Laxmi Nagar, Flat 4C', region='East Delhi', city='New Delhi', account_status='active', connection_type='residential'),
-            Customer(id=7, customer_code='CUST-007', name='Metro Mall Complex', address='1 Central Avenue', region='South Delhi', city='New Delhi', account_status='active', connection_type='commercial'),
-            Customer(id=8, customer_code='CUST-008', name='Vikram Singh', address='90 Saket, J Block', region='South Delhi', city='New Delhi', account_status='suspended', connection_type='residential'),
-            Customer(id=9, customer_code='CUST-009', name='Ananya Reddy', address='15 Jubilee Hills', region='Hyderabad', city='Hyderabad', account_status='active', connection_type='residential'),
-            Customer(id=10, customer_code='CUST-010', name='SteelWorks Ltd.', address='400 MIDC Industrial Estate', region='Pune', city='Pune', account_status='active', connection_type='industrial')
+            Customer(
+                id=1, customer_code='CUST-001', meter_id='MTR-SGCC-1001', name='Rajesh Kumar',
+                address='45 MG Road, Sector 12', region='North Delhi', city='New Delhi', region_code='ND-01',
+                feeder_line='FEEDER-NORTH-A1', tariff_category='LT-Domestic', sanctioned_load_kw=5.0,
+                account_status='active', connection_type='Residential'
+            ),
+            Customer(
+                id=2, customer_code='CUST-002', meter_id='MTR-SGCC-1002', name='Priya Sharma',
+                address='123 Gandhi Nagar, Block B', region='South Delhi', city='New Delhi', region_code='SD-02',
+                feeder_line='FEEDER-SOUTH-B4', tariff_category='LT-Domestic', sanctioned_load_kw=4.5,
+                account_status='active', connection_type='Residential'
+            ),
+            Customer(
+                id=3, customer_code='CUST-003', meter_id='MTR-SGCC-1003', name='TechPark Solutions',
+                address='500 IT Park, Phase II', region='Gurgaon', city='Gurgaon', region_code='GGN-05',
+                feeder_line='FEEDER-COMM-HT1', tariff_category='HT-Commercial', sanctioned_load_kw=150.0,
+                account_status='active', connection_type='Commercial'
+            ),
+            Customer(
+                id=4, customer_code='CUST-004', meter_id='MTR-SGCC-1004', name='Amit Patel',
+                address='78 Nehru Colony', region='East Delhi', city='New Delhi', region_code='ED-03',
+                feeder_line='FEEDER-EAST-C2', tariff_category='LT-Domestic', sanctioned_load_kw=6.0,
+                account_status='active', connection_type='Residential'
+            ),
+            Customer(
+                id=5, customer_code='CUST-005', meter_id='MTR-SGCC-1005', name='GreenLeaf Textiles',
+                address='200 Industrial Area, Plot 15', region='Noida', city='Noida', region_code='NOI-09',
+                feeder_line='FEEDER-IND-X7', tariff_category='HT-Industrial', sanctioned_load_kw=350.0,
+                account_status='active', connection_type='Industrial'
+            ),
+            Customer(
+                id=6, customer_code='CUST-006', meter_id='MTR-SGCC-1006', name='Sunita Verma',
+                address='33 Laxmi Nagar, Flat 4C', region='East Delhi', city='New Delhi', region_code='ED-03',
+                feeder_line='FEEDER-EAST-C2', tariff_category='LT-Domestic', sanctioned_load_kw=3.0,
+                account_status='active', connection_type='Residential'
+            ),
+            Customer(
+                id=7, customer_code='CUST-007', meter_id='MTR-SGCC-1007', name='Metro Mall Complex',
+                address='1 Central Avenue', region='South Delhi', city='New Delhi', region_code='SD-02',
+                feeder_line='FEEDER-SOUTH-B4', tariff_category='HT-Commercial', sanctioned_load_kw=500.0,
+                account_status='active', connection_type='Commercial'
+            ),
+            Customer(
+                id=8, customer_code='CUST-008', meter_id='MTR-SGCC-1008', name='Vikram Singh',
+                address='90 Saket, J Block', region='South Delhi', city='New Delhi', region_code='SD-02',
+                feeder_line='FEEDER-SOUTH-B4', tariff_category='LT-Domestic', sanctioned_load_kw=7.5,
+                account_status='suspended', connection_type='Residential'
+            ),
+            Customer(
+                id=9, customer_code='CUST-009', meter_id='MTR-SGCC-1009', name='Ananya Reddy',
+                address='15 Jubilee Hills', region='Hyderabad', city='Hyderabad', region_code='HYD-11',
+                feeder_line='FEEDER-HYD-WEST', tariff_category='LT-Domestic', sanctioned_load_kw=8.0,
+                account_status='active', connection_type='Residential'
+            ),
+            Customer(
+                id=10, customer_code='CUST-010', meter_id='MTR-SGCC-1010', name='SteelWorks Ltd.',
+                address='400 MIDC Industrial Estate', region='Pune', city='Pune', region_code='PNE-04',
+                feeder_line='FEEDER-IND-PUNE', tariff_category='HT-Industrial', sanctioned_load_kw=1200.0,
+                account_status='active', connection_type='Industrial'
+            )
         ]
         db.session.add_all(customers)
         db.session.commit()

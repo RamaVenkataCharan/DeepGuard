@@ -26,19 +26,27 @@ CREATE TABLE users (
 
 -- ---------- Customers ----------
 CREATE TABLE customers (
-    id              INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
-    customer_code   VARCHAR(50)     NOT NULL,
-    name            VARCHAR(200)    NOT NULL,
-    address         TEXT            NULL,
-    region          VARCHAR(100)    NOT NULL,
-    city            VARCHAR(100)    NULL,
-    account_status  ENUM('active', 'suspended', 'closed') NOT NULL DEFAULT 'active',
-    connection_type ENUM('residential', 'commercial', 'industrial') NOT NULL DEFAULT 'residential',
-    created_at      DATETIME        NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    updated_at      DATETIME        NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    id                 INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    customer_code      VARCHAR(50)     NOT NULL,
+    meter_id           VARCHAR(64)     NOT NULL,
+    name               VARCHAR(200)    NOT NULL,
+    address            TEXT            NULL,
+    region             VARCHAR(100)    NULL,
+    city               VARCHAR(100)    NULL,
+    region_code        VARCHAR(50)     NULL,
+    feeder_line        VARCHAR(100)    NULL,
+    tariff_category    VARCHAR(100)    NOT NULL DEFAULT 'LT-Residential',
+    sanctioned_load_kw DOUBLE          NULL,
+    account_status     ENUM('active', 'suspended', 'closed') NOT NULL DEFAULT 'active',
+    connection_type    ENUM('Residential', 'Commercial', 'Industrial') NOT NULL DEFAULT 'Residential',
+    created_at         DATETIME        NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at         DATETIME        NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
 
     UNIQUE INDEX uq_customers_code (customer_code),
+    UNIQUE INDEX uq_customers_meter_id (meter_id),
     INDEX idx_customers_region (region),
+    INDEX idx_customers_region_code (region_code),
+    INDEX idx_customers_feeder_line (feeder_line),
     INDEX idx_customers_status (account_status)
 ) ENGINE=InnoDB;
 

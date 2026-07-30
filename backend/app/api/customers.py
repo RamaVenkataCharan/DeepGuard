@@ -1,6 +1,6 @@
 """
 Customer Management and Readings History API.
-Exposes CRUD on customers and lists daily consumption arrays.
+Exposes CRUD on smart meter customers and lists daily consumption arrays.
 """
 from flask.views import MethodView
 from flask_smorest import Blueprint, abort
@@ -15,12 +15,17 @@ customers_blp = Blueprint("customers", "customers", url_prefix="/api/customers",
 class CustomerSchema(Schema):
     id = fields.Int(dump_only=True)
     customer_code = fields.Str(required=True)
+    meter_id = fields.Str(required=True)
     name = fields.Str(required=True)
     address = fields.Str(required=False)
-    region = fields.Str(required=True)
+    region = fields.Str(required=False)
     city = fields.Str(required=False)
+    region_code = fields.Str(required=False)
+    feeder_line = fields.Str(required=False)
+    tariff_category = fields.Str(required=True)
+    sanctioned_load_kw = fields.Float(required=False)
+    connection_type = fields.Str(required=True)
     account_status = fields.Str(required=False)
-    connection_type = fields.Str(required=False)
 
 @customers_blp.route("/")
 class CustomersView(MethodView):
@@ -38,6 +43,8 @@ class CustomersView(MethodView):
         """Creates a new customer account profile."""
         if Customer.query.filter_by(customer_code=customer_data["customer_code"]).first():
             abort(400, message="Customer code already exists.")
+        if Customer.query.filter_by(meter_id=customer_data["meter_id"]).first():
+            abort(400, message="Meter ID already exists.")
             
         customer = Customer(**customer_data)
         db.session.add(customer)
