@@ -49,19 +49,24 @@ def create_synthetic_sgcc_dataset(num_customers: int = 50, num_days: int = 30) -
     return pd.DataFrame(data, columns=columns)
 
 
-def verify_customer_level_split():
+def verify_customer_level_split(file_path: str = "ml/data/raw/data.csv"):
     logger.info("=== STARTING DEEPGUARD DATA LEAKAGE AUDIT & VERIFICATION ===")
     
-    df_synthetic = create_synthetic_sgcc_dataset(num_customers=50, num_days=30)
-    
-    with tempfile.NamedTemporaryFile(mode="w", suffix=".csv", delete=False) as tmp:
-        df_synthetic.to_csv(tmp.name, index=False)
-        tmp_csv_path = tmp.name
+    using_temp = False
+    if os.path.exists(file_path):
+        target_path = file_path
+    else:
+        logger.info("Real dataset not found at default path. Generating synthetic SGCC dataset for audit run...")
+        df_synthetic = create_synthetic_sgcc_dataset(num_customers=50, num_days=30)
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".csv", delete=False) as tmp:
+            df_synthetic.to_csv(tmp.name, index=False)
+            target_path = tmp.name
+        using_temp = True
 
     try:
         # Run 7-step pipeline
         splits, report = run_preprocessing_pipeline(
-            tmp_csv_path,
+            target_path,
             config={"window_size": 14, "stride": 7, "split_ratios": (0.70, 0.15, 0.15)},
             apply_smote_on_features=False
         )
@@ -81,7 +86,7 @@ def verify_customer_level_split():
         assert len(overlap_val_test) == 0, f"FAILED: Data leakage detected between Val & Test: {overlap_val_test}"
 
         total_unique_custs_in_splits = len(train_custs) + len(val_custs) + len(test_custs)
-        assert total_unique_custs_in_splits == 50, f"FAILED: Total split customers ({total_unique_custs_in_splits}) != 50"
+        assert total_unique_custs_in_splits == report['raw_customers'], f"FAILED: Total split customers ({total_unique_custs_in_splits}) != {report['raw_customers']}"
 
         # 3. VERIFY WINDOW CUSTOMER IDS MATCH SPLIT ASSIGNMENTS
         train_window_custs = set(splits["train"]["customer_ids"])
@@ -96,14 +101,15 @@ def verify_customer_level_split():
         print("\n" + "=" * 65)
         print("         AUDIT VERIFICATION PASSED: ZERO DATA LEAKAGE         ")
         print("=" * 65)
-        print(f" Total Raw Customer Profiles : {report['raw_customers']}")
-        print(f" Total Sliding Windows       : {report['total_windows_generated']}")
+        print(f" Dataset Source File         : {target_path}")
+        print(f" Total Raw Customer Profiles : {report['raw_customers']:,}")
+        print(f" Total Sliding Windows       : {report['total_windows_generated']:,}")
         print("-" * 65)
         print(f" Split Ratios Target         : 70% Train / 15% Val / 15% Test")
         print("-" * 65)
-        print(f" Train Split                 : {splits['train']['num_customers']} Customers | {splits['train']['num_windows']} Windows")
-        print(f" Val Split                   : {splits['val']['num_customers']} Customers   | {splits['val']['num_windows']} Windows")
-        print(f" Test Split                  : {splits['test']['num_customers']} Customers   | {splits['test']['num_windows']} Windows")
+        print(f" Train Split                 : {splits['train']['num_customers']:,} Customers | {splits['train']['num_windows']:,} Windows")
+        print(f" Val Split                   : {splits['val']['num_customers']:,} Customers | {splits['val']['num_windows']:,} Windows")
+        print(f" Test Split                  : {splits['test']['num_customers']:,} Customers | {splits['test']['num_windows']:,} Windows")
         print("-" * 65)
         print(f" Train-Val Customer Overlap  : {len(overlap_train_val)} (PASSED)")
         print(f" Train-Test Customer Overlap : {len(overlap_train_test)} (PASSED)")
@@ -111,8 +117,8 @@ def verify_customer_level_split():
         print("=" * 65 + "\n")
 
     finally:
-        if os.path.exists(tmp_csv_path):
-            os.remove(tmp_csv_path)
+        if using_temp and os.path.exists(target_path):
+            os.remove(target_path)
 
 
 if __name__ == "__main__":

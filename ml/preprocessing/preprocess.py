@@ -298,39 +298,40 @@ def extract_window_features(
 ) -> np.ndarray:
     """
     Extracts statistical and temporal features from each 1D time series window.
+    Fully vectorized using NumPy tensor operations for ultra-fast processing over millions of windows.
     """
-    logger.info("Extracting auxiliary statistical & temporal features per window...")
+    logger.info("Extracting auxiliary statistical & temporal features per window (Vectorized)...")
     num_samples, window_size, _ = X_seq.shape
-    features_list = []
-
-    for i in range(num_samples):
-        window = X_seq[i, :, 0]
-
-        mean_val = np.mean(window)
-        std_val = np.std(window)
-        min_val = np.min(window)
-        max_val = np.max(window)
-        skew_val = float(skew(window)) if std_val > 1e-6 else 0.0
-        kurt_val = float(kurtosis(window)) if std_val > 1e-6 else 0.0
-
-        dod_delta = np.mean(np.abs(np.diff(window))) if len(window) > 1 else 0.0
-
-        if dates_per_window is not None and len(dates_per_window[i]) == window_size:
-            dates = dates_per_window[i]
-            is_weekend = np.array([d.weekday() >= 5 for d in dates])
-            weekday_avg = np.mean(window[~is_weekend]) if np.sum(~is_weekend) > 0 else mean_val
-            weekend_avg = np.mean(window[is_weekend]) if np.sum(is_weekend) > 0 else mean_val
-            ratio = (weekend_avg / (weekday_avg + 1e-6))
-        else:
-            split_idx = int(window_size * (5 / 7))
-            weekday_avg = np.mean(window[:split_idx]) if split_idx > 0 else mean_val
-            weekend_avg = np.mean(window[split_idx:]) if split_idx < window_size else mean_val
-            ratio = (weekend_avg / (weekday_avg + 1e-6))
-
-        features = [mean_val, std_val, min_val, max_val, skew_val, kurt_val, dod_delta, ratio]
-        features_list.append(features)
-
-    X_feat = np.array(features_list, dtype=np.float32)
+    
+    # Reshape 3D (N, 14, 1) -> 2D (N, 14)
+    data = X_seq[:, :, 0]
+    
+    mean_val = np.mean(data, axis=1)
+    std_val = np.std(data, axis=1)
+    min_val = np.min(data, axis=1)
+    max_val = np.max(data, axis=1)
+    
+    # Vectorized Skewness & Kurtosis (with zero-std protection)
+    std_safe = np.where(std_val > 1e-6, std_val, 1.0)
+    data_norm = (data - mean_val[:, np.newaxis]) / std_safe[:, np.newaxis]
+    skew_val = np.where(std_val > 1e-6, np.mean(data_norm ** 3, axis=1), 0.0)
+    kurt_val = np.where(std_val > 1e-6, np.mean(data_norm ** 4, axis=1) - 3.0, 0.0)
+    
+    # Day-over-Day absolute difference mean across window
+    dod_delta = np.mean(np.abs(np.diff(data, axis=1)), axis=1)
+    
+    # Weekday vs Weekend consumption ratio
+    split_idx = int(window_size * (5 / 7))
+    weekday_avg = np.mean(data[:, :split_idx], axis=1) if split_idx > 0 else mean_val
+    weekend_avg = np.mean(data[:, split_idx:], axis=1) if split_idx < window_size else mean_val
+    ratio = weekend_avg / (weekday_avg + 1e-6)
+    
+    # Stack into (N, 8) feature matrix
+    X_feat = np.column_stack([
+        mean_val, std_val, min_val, max_val,
+        skew_val, kurt_val, dod_delta, ratio
+    ]).astype(np.float32)
+    
     X_feat = np.nan_to_num(X_feat, nan=0.0)
     logger.info(f"Extracted Feature Matrix Shape: {X_feat.shape} (8 features per window)")
     return X_feat
