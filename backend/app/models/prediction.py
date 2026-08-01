@@ -18,6 +18,7 @@ class Prediction(db.Model):
     model_version = db.Column(db.String(20), nullable=False, default="v1.0.0")
     sequence_start = db.Column(db.DateTime, nullable=True)
     sequence_end = db.Column(db.DateTime, nullable=True)
+    contributing_features = db.Column(db.JSON, nullable=True)
     predicted_at = db.Column(db.DateTime, nullable=False, default=datetime.utcnow, index=True)
 
     # Relationships
@@ -40,5 +41,6 @@ class Prediction(db.Model):
             "model_version": self.model_version,
             "sequence_start": self.sequence_start.isoformat() if self.sequence_start else None,
             "sequence_end": self.sequence_end.isoformat() if self.sequence_end else None,
+            "contributing_features": self.contributing_features or [],
             "predicted_at": self.predicted_at.isoformat()
         }

@@ -57,6 +57,7 @@ class RunPredictionView(MethodView):
             fused_score=pred_dict["fused_score"],
             risk_score=pred_dict["risk_score"],
             risk_level=pred_dict["risk_level"],
+            contributing_features=pred_dict.get("contributing_features", []),
             model_version="v1.0.0"
         )
         

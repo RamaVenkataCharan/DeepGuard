@@ -70,8 +70,26 @@ def calculate_risk_score(
     else:
         level = "critical"
         
+    # Generate top contributing feature human-readable explanations
+    contributing_features = []
+    if consumption_stats:
+        zero_fraction = consumption_stats.get("zero_fraction", 0.0)
+        cv = consumption_stats.get("cv", 0.0)
+        trend = consumption_stats.get("trend_slope", 0.0)
+        
+        if zero_fraction > 0.1:
+            contributing_features.append(f"Zero-consumption reading ratio ({zero_fraction*100:.1f}%) significantly exceeds normal baseline")
+        if cv > 0.8:
+            contributing_features.append(f"High coefficient of variation ({cv:.2f}) indicates suspicious load volatility")
+        if trend < -0.2:
+            contributing_features.append(f"Downward consumption trend slope ({trend:.2f}) observed across evaluation period")
+            
+    if not contributing_features:
+        contributing_features.append(f"Deep learning ensemble detected abnormal consumption pattern (Model probability: {p*100:.1f}%)")
+        
     return {
         "risk_score": score,
         "risk_level": level,
-        "theft_probability": p
+        "theft_probability": p,
+        "contributing_features": contributing_features
     }

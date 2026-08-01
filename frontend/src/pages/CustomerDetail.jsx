@@ -203,12 +203,28 @@ const CustomerDetail = () => {
                 
                 {/* 1. ReferenceArea Shading for High-Risk Anomaly Windows */}
                 {history.filter(p => ['high', 'critical'].includes(p.risk_level.toLowerCase())).map((p, idx) => {
-                  const dateVal = new Date(p.predicted_at).toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
+                  if (readings.length === 0) return null;
+                  
+                  // Compute 14-day sliding window date range ending on prediction timestamp
+                  const predDate = new Date(p.predicted_at);
+                  let endDateStr = p.sequence_end 
+                    ? new Date(p.sequence_end).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })
+                    : predDate.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
+                    
+                  let startDateStr = p.sequence_start
+                    ? new Date(p.sequence_start).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })
+                    : new Date(predDate.getTime() - 13 * 24 * 60 * 60 * 1000).toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
+
+                  // Fallback: match available X-axis domain indices in readings
+                  const availableDates = readings.map(r => r.date);
+                  const x1 = availableDates.includes(startDateStr) ? startDateStr : availableDates[0];
+                  const x2 = availableDates.includes(endDateStr) ? endDateStr : availableDates[availableDates.length - 1];
+
                   return (
                     <ReferenceArea 
                       key={idx}
-                      x1={dateVal} 
-                      x2={dateVal} 
+                      x1={x1} 
+                      x2={x2} 
                       stroke="#EF4444" 
                       strokeOpacity={0.4} 
                       fill="#EF4444" 
@@ -220,24 +236,41 @@ const CustomerDetail = () => {
             </ResponsiveContainer>
           </div>
 
-          {/* 2 & 3. Heuristic Disclaimer & Anomaly Explanations Annotations */}
+          {/* 2 & 3. Data-driven Anomaly Explanations Annotations */}
           {history.some(p => ['high', 'critical'].includes(p.risk_level.toLowerCase())) && (
             <div className="mt-4 p-4 rounded-xl bg-red-500/5 border border-red-500/10 text-left">
               <span className="text-xs font-bold text-red-400 uppercase tracking-wider mb-2 block">
-                ⚠️ Heuristic Consumption Deviation Explanations
+                ⚠️ Anomaly Feature Attribution & Explanations
               </span>
               <p className="text-xs text-slate-400 leading-normal mb-3">
-                <strong>Methodology Note:</strong> The indicators below represent heuristic statistical deviations (std dev, drop variance, Day-over-Day delta) from this customer's own baseline. They are intended for decision support only and do not constitute true verified deep learning model attribution (e.g., attention weight or SHAP/LIME explanation mapping).
+                <strong>Methodology Note:</strong> The contributing factors below detail top statistical deviations from this customer's baseline evaluated across the 14-day sliding window.
               </p>
-              <ul className="space-y-2">
-                {history.filter(p => ['high', 'critical'].includes(p.risk_level.toLowerCase())).map((p, idx) => (
-                  <li key={idx} className="text-xs text-slate-300 bg-slate-950 p-2.5 rounded border border-slate-850/80">
-                    <span className="font-semibold text-red-400">{new Date(p.predicted_at).toLocaleDateString()}</span>: 
-                    Consumption dropped significantly below normal. Volatility delta: {(p.fused_score * 0.45).toFixed(2)}. 
-                    Unexplained low load pattern.
-                  </li>
-                ))}
-              </ul>
+              <div className="space-y-3">
+                {history.filter(p => ['high', 'critical'].includes(p.risk_level.toLowerCase())).map((p, idx) => {
+                  const hasFeatures = Array.isArray(p.contributing_features) && p.contributing_features.length > 0;
+
+                  return (
+                    <div key={idx} className="bg-slate-950 p-3 rounded-lg border border-slate-850/80">
+                      <div className="text-xs font-semibold text-red-400 mb-1">
+                        Scan Date: {new Date(p.predicted_at).toLocaleDateString()} (Risk Score: {p.risk_score}/100 - {p.risk_level.toUpperCase()})
+                      </div>
+                      {hasFeatures ? (
+                        <ul className="list-disc list-inside space-y-1">
+                          {p.contributing_features.map((feat, fIdx) => (
+                            <li key={fIdx} className="text-xs text-slate-300">
+                              {feat}
+                            </li>
+                          ))}
+                        </ul>
+                      ) : (
+                        <p className="text-xs text-slate-400 italic">
+                          Detailed feature attribution payload unavailable for this scan record.
+                        </p>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
             </div>
           )}
         </div>

@@ -107,5 +107,6 @@ def predict_customer_risk(
         "fused_score": risk_results["theft_probability"],
         "risk_score": risk_results["risk_score"],
         "risk_level": risk_results["risk_level"],
+        "contributing_features": risk_results["contributing_features"],
         "consumption_stats": stats
     }

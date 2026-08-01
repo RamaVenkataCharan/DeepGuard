@@ -49,7 +49,8 @@ def validate_sgcc_raw_file(file_path: str = "ml/data/raw/data.csv"):
     norm_cnt = class_counts.get(0, 0)
     theft_cnt = class_counts.get(1, 0)
     theft_pct = (theft_cnt / num_rows) * 100.0 if num_rows > 0 else 0
-    print(f" Class Distribution        : Normal(0)={norm_cnt:,} (100-theft_pct:.1f}%), Theft(1)={theft_cnt:,} ({theft_pct:.2f}%)")
+    norm_pct = 100.0 - theft_pct
+    print(f" Class Distribution        : Normal(0)={norm_cnt:,} ({norm_pct:.1f}%), Theft(1)={theft_cnt:,} ({theft_pct:.2f}%)")
 
     # Missing values check
     total_cells = num_rows * len(date_cols)

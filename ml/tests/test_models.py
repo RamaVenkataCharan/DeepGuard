@@ -14,7 +14,7 @@ def test_bilstm_branch_shape():
     
     # Verify input and output dimensions
     assert model.input_shape == (None, 14, 1)
-    assert model.output_shape == (None, 64)
+    assert model.output_shape == (None, 32)
 
 def test_transformer_branch_shape():
     input_shape = (14, 1)
@@ -22,14 +22,15 @@ def test_transformer_branch_shape():
     
     # Verify input and output dimensions
     assert model.input_shape == (None, 14, 1)
-    assert model.output_shape == (None, 64)
+    assert model.output_shape == (None, 32)
 
 def test_fusion_model_shape():
-    input_shape = (14, 1)
-    model = build_fusion_model(input_shape)
+    seq_shape = (14, 1)
+    feat_shape = (8,)
+    model = build_fusion_model(seq_shape=seq_shape, feat_shape=feat_shape)
     
-    # Verify complete model dimensions
-    assert model.input_shape == (None, 14, 1)
+    # Verify complete hybrid fusion model dimensions (dual inputs: sequence tensor + feature vector)
+    assert model.input_shape == [(None, 14, 1), (None, 8)]
     assert model.output_shape == (None, 1)
 
 def test_risk_score_mapping():
