@@ -1,0 +1,11 @@
+Customer ID,Customer Code,Name,Region,Connection Type,Account Status
+1,CUST-001,Rajesh Kumar,North Delhi,Residential,active
+2,CUST-002,Priya Sharma,South Delhi,Residential,active
+3,CUST-003,TechPark Solutions,Gurgaon,Commercial,active
+4,CUST-004,Amit Patel,East Delhi,Residential,active
+5,CUST-005,GreenLeaf Textiles,Noida,Industrial,active
+6,CUST-006,Sunita Verma,East Delhi,Residential,active
+7,CUST-007,Metro Mall Complex,South Delhi,Commercial,active
+8,CUST-008,Vikram Singh,South Delhi,Residential,suspended
+9,CUST-009,Ananya Reddy,Hyderabad,Residential,active
+10,CUST-010,SteelWorks Ltd.,Pune,Industrial,active
