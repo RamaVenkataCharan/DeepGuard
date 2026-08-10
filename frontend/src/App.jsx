@@ -7,6 +7,7 @@ import Dashboard from './pages/Dashboard';
 import CustomerDetail from './pages/CustomerDetail';
 import Alerts from './pages/Alerts';
 import Reports from './pages/Reports';
+import NetworkRiskMap from './pages/NetworkRiskMap';
 
 // Layout wrapper that adds the Navbar for logged-in sessions
 const Layout = () => {
@@ -39,6 +40,7 @@ function AppRoutes() {
           <Route path="/customer/:id" element={<CustomerDetail />} />
           <Route path="/alerts" element={<Alerts />} />
           <Route path="/reports" element={<Reports />} />
+          <Route path="/network" element={<NetworkRiskMap />} />
         </Route>
       </Route>
 

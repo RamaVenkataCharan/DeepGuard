@@ -1,6 +1,6 @@
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { Shield, LayoutDashboard, AlertTriangle, FileBarChart, LogOut, User } from 'lucide-react';
+import { Shield, LayoutDashboard, AlertTriangle, FileBarChart, LogOut, User, Network } from 'lucide-react';
 
 const Navbar = () => {
   const { user, logout } = useAuth();
@@ -16,6 +16,7 @@ const Navbar = () => {
     { path: '/', label: 'Dashboard', icon: LayoutDashboard },
     { path: '/alerts', label: 'Alerts', icon: AlertTriangle },
     { path: '/reports', label: 'Reports', icon: FileBarChart },
+    { path: '/network', label: '3D Network Map', icon: Network },
   ];
 
   const getRoleColor = (role) => {
