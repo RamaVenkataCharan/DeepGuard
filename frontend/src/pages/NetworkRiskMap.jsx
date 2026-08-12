@@ -5,10 +5,6 @@ import { OrbitControls, Html, Line } from '@react-three/drei';
 import * as THREE from 'three';
 import { Layers, Filter, ArrowRight, Activity, AlertTriangle, RefreshCw } from 'lucide-react';
 
-// ============================================================================
-// TASK 1: DATA STRUCTURE & SYNTHETIC MOCK DATA GENERATOR
-// ============================================================================
-
 /**
  * Severity Color Mapping consistent with DeepGuard app conventions:
  * info: Blue (#3B82F6), warning: Yellow (#F59E0B), high: Orange (#F97316), critical: Red (#EF4444)
@@ -39,8 +35,7 @@ const CONNECTION_TYPES = ['Single Phase', 'Three Phase', 'Commercial High Load']
 const TARIFF_CATEGORIES = ['Residential', 'Commercial', 'Industrial'];
 
 /**
- * Mock data generator matching real API contracts and ~8.53% theft prevalence
- * tagged with data_source: "synthetic_demo"
+ * Synthetic mock dataset generator matching SGCC real customer distribution
  */
 function generateNetworkData() {
   const regions = [];
@@ -50,8 +45,6 @@ function generateNetworkData() {
   let customerCounter = 1000;
 
   REGIONS.forEach((reg, rIdx) => {
-    // 3 Feeder lines per region
-    const regionFeeders = [];
     const R_REGION = 32;
     const regX = Math.cos(reg.baseAngle) * R_REGION;
     const regZ = Math.sin(reg.baseAngle) * R_REGION;
@@ -67,11 +60,13 @@ function generateNetworkData() {
       data_source: 'synthetic_demo'
     };
 
+    const regionFeeders = [];
+
     for (let f = 1; f <= 3; f++) {
       const feederCode = `FDR-${reg.code.split('-')[1].charAt(0)}${f.toString().padStart(2, '0')}`;
       const fAngle = reg.baseAngle + ((f - 2) * Math.PI) / 6;
       const R_FEEDER = 14;
-      
+
       const feederX = regX + Math.cos(fAngle) * R_FEEDER;
       const feederZ = regZ + Math.sin(fAngle) * R_FEEDER;
       const feederY = regY + (f - 2) * 2;
@@ -86,15 +81,13 @@ function generateNetworkData() {
         data_source: 'synthetic_demo'
       };
 
-      // 20-30 customers per feeder line
-      const numCust = 22 + Math.floor(Math.random() * 10);
+      const numCust = 24;
       const feederCustomers = [];
 
       for (let c = 0; c < numCust; c++) {
         customerCounter++;
         const meterId = `MTR-${customerCounter}`;
-        
-        // Distribute risk matching ~8.53% theft prevalence
+
         const rand = Math.random();
         let severity = 'info';
         let riskScore = 0.05 + Math.random() * 0.25;
@@ -138,7 +131,6 @@ function generateNetworkData() {
         customers.push(custNode);
       }
 
-      // Compute Feeder aggregates
       const feederWorstSev = feederCustomers.reduce((acc, curr) => {
         return SEVERITY_WEIGHTS[curr.severity] > SEVERITY_WEIGHTS[acc] ? curr.severity : acc;
       }, 'info');
@@ -152,7 +144,6 @@ function generateNetworkData() {
       feeders.push(feederNode);
     }
 
-    // Compute Region aggregates
     const regWorstSev = regionFeeders.reduce((acc, curr) => {
       return SEVERITY_WEIGHTS[curr.severity] > SEVERITY_WEIGHTS[acc] ? curr.severity : acc;
     }, 'info');
@@ -166,10 +157,6 @@ function generateNetworkData() {
 
   return { regions, feeders, customers };
 }
-
-// ============================================================================
-// TASK 2 & 3: 3D THREE.JS COMPONENTS (NODES, EDGES, HOVER, CAMERA CONTROLS)
-// ============================================================================
 
 /**
  * Animated Pulse Ring for High/Critical Risk Nodes
@@ -199,7 +186,6 @@ function NodeMesh({ node, isHovered, isSelected, onHover, onClick }) {
   const meshRef = useRef();
   const color = SEVERITY_COLORS[node.severity] || '#94A3B8';
 
-  // Node size hierarchy: Region (2.4) > Feeder (1.5) > Customer (0.55)
   const size = useMemo(() => {
     if (node.type === 'region') return 2.4;
     if (node.type === 'feeder') return 1.5;
@@ -214,12 +200,10 @@ function NodeMesh({ node, isHovered, isSelected, onHover, onClick }) {
 
   return (
     <group position={node.position}>
-      {/* Pulse effect for critical nodes */}
       {(node.severity === 'critical' || node.severity === 'high') && (
         <PulseRing position={[0, 0, 0]} color={color} />
       )}
 
-      {/* Main Node Geometry */}
       <mesh
         ref={meshRef}
         onPointerOver={(e) => {
@@ -253,7 +237,6 @@ function NodeMesh({ node, isHovered, isSelected, onHover, onClick }) {
         />
       </mesh>
 
-      {/* Node 3D Text Label for Region and Feeder nodes */}
       {(node.type === 'region' || node.type === 'feeder') && (
         <Html position={[0, size + 1.2, 0]} center distanceFactor={60}>
           <div
@@ -275,7 +258,7 @@ function NodeMesh({ node, isHovered, isSelected, onHover, onClick }) {
 }
 
 /**
- * Low-opacity Connecting Edges between Parent & Child Nodes
+ * Connecting Edges
  */
 function ConnectionEdges({ edges }) {
   return (
@@ -295,7 +278,7 @@ function ConnectionEdges({ edges }) {
 }
 
 /**
- * Camera Controller for smooth drill-down zooming into selected clusters
+ * Camera Controller
  */
 function CameraRig({ targetPos }) {
   const controlsRef = useRef();
@@ -313,34 +296,27 @@ function CameraRig({ targetPos }) {
       dampingFactor={0.05}
       minDistance={10}
       maxDistance={120}
-      maxPolarAngle={Math.PI / 2 + 0.1} // Constrain camera so user cannot scroll into an empty void under the grid
+      maxPolarAngle={Math.PI / 2 + 0.1}
     />
   );
 }
 
-// ============================================================================
-// MAIN PAGE COMPONENT: NetworkRiskMap
-// ============================================================================
-
 const NetworkRiskMap = () => {
   const navigate = useNavigate();
 
-  // Load synthetic dataset
   const networkData = useMemo(() => generateNetworkData(), []);
-  
-  // State management
+
   const [selectedFeeder, setSelectedFeeder] = useState(null);
   const [selectedRegion, setSelectedRegion] = useState(null);
   const [hoveredNode, setHoveredNode] = useState(null);
-  const [viewMode, setViewMode] = useState('feeder_aggregate'); // 'feeder_aggregate' | 'full_grid'
-  const [severityFilter, setSeverityFilter] = useState('all'); // 'all' | 'critical' | 'high' | 'warning' | 'info'
+  const [viewMode, setViewMode] = useState('feeder_aggregate');
+  const [severityFilter, setSeverityFilter] = useState('all');
   const [cameraTarget, setCameraTarget] = useState([0, 0, 0]);
 
-  // Filtered nodes based on viewMode and severityFilter
+  // LOD Scale Strategy: Default to feeder aggregate view, render individual customer nodes on feeder selection
   const visibleCustomers = useMemo(() => {
     let custs = networkData.customers;
 
-    // Task 4 LOD Strategy: Default to feeder aggregate view, render customers when feeder is selected
     if (viewMode === 'feeder_aggregate') {
       if (!selectedFeeder) return [];
       custs = custs.filter(c => c.feeder_line === selectedFeeder.feeder_line);
@@ -353,11 +329,9 @@ const NetworkRiskMap = () => {
     return custs;
   }, [networkData, viewMode, selectedFeeder, severityFilter]);
 
-  // Edges definition
   const edges = useMemo(() => {
     const edgeList = [];
 
-    // Region -> Feeder Edges
     networkData.feeders.forEach((feeder) => {
       const parentReg = networkData.regions.find((r) => r.id === feeder.parent_id);
       if (parentReg) {
@@ -370,7 +344,6 @@ const NetworkRiskMap = () => {
       }
     });
 
-    // Feeder -> Customer Edges
     visibleCustomers.forEach((cust) => {
       const parentFeeder = networkData.feeders.find((f) => f.id === cust.parent_id);
       if (parentFeeder) {
@@ -386,10 +359,8 @@ const NetworkRiskMap = () => {
     return edgeList;
   }, [networkData, visibleCustomers]);
 
-  // Handle Node Selection / Drill Down
   const handleNodeClick = (node) => {
     if (node.type === 'customer') {
-      // Task 3: Navigate to existing Customer Detail view
       navigate(`/customer/${node.id}`);
     } else if (node.type === 'feeder') {
       setSelectedFeeder(node);
@@ -409,21 +380,18 @@ const NetworkRiskMap = () => {
 
   return (
     <div className="flex flex-col h-[calc(100vh-80px)] bg-dark-bg text-slate-100 overflow-hidden relative">
-      
-      {/* ────────────────────────────────────────────────────────────────────
-          TASK 5: SYNTHETIC DEMO DATA BANNER & HEADER
-      ────────────────────────────────────────────────────────────────────── */}
-      <div className="px-6 py-4 bg-slate-900/60 border-b border-dark-border flex flex-col md:flex-row md:items-center justify-between gap-4 z-10">
+      {/* Control Bar */}
+      <div className="px-6 py-3.5 bg-slate-900/80 border-b border-dark-border flex flex-col md:flex-row md:items-center justify-between gap-4 z-10 shadow-lg">
         <div>
           <div className="flex items-center space-x-3">
             <div className="p-2 rounded-xl bg-blue-500/10 text-blue-400 border border-blue-500/20">
               <Layers className="w-5 h-5" />
             </div>
             <div>
-              <h1 className="text-xl font-bold tracking-tight text-white flex items-center gap-2">
+              <h1 className="text-xl font-bold tracking-tight text-white flex items-center gap-2 font-display">
                 3D Network Risk Topology
-                <span className="text-xs font-semibold px-2 py-0.5 rounded bg-blue-500/10 text-blue-400 border border-blue-500/20">
-                  Spatial View
+                <span className="text-xs font-mono font-semibold px-2 py-0.5 rounded bg-blue-500/10 text-blue-400 border border-blue-500/20">
+                  Spatial Telemetry
                 </span>
               </h1>
               <p className="text-xs text-dark-muted mt-0.5">
@@ -435,23 +403,22 @@ const NetworkRiskMap = () => {
 
         {/* View Mode & Filter Controls */}
         <div className="flex items-center flex-wrap gap-3">
-          {/* Scale LOD Selector */}
           <div className="flex bg-slate-800/80 p-1 rounded-xl border border-dark-border text-xs">
             <button
               onClick={() => setViewMode('feeder_aggregate')}
-              className={`px-3 py-1.5 rounded-lg font-medium transition-all ${
+              className={`px-3 py-1.5 rounded-lg font-semibold transition-all focus-visible:ring-2 focus-visible:ring-blue-500 ${
                 viewMode === 'feeder_aggregate'
-                  ? 'bg-blue-600 text-white shadow'
+                  ? 'bg-blue-600 text-white shadow-md shadow-blue-600/20'
                   : 'text-slate-400 hover:text-slate-200'
               }`}
             >
-              Feeder Drill-Down (Scale Optimized)
+              Feeder Drill-Down (Scale LOD)
             </button>
             <button
               onClick={() => setViewMode('full_grid')}
-              className={`px-3 py-1.5 rounded-lg font-medium transition-all ${
+              className={`px-3 py-1.5 rounded-lg font-semibold transition-all focus-visible:ring-2 focus-visible:ring-blue-500 ${
                 viewMode === 'full_grid'
-                  ? 'bg-blue-600 text-white shadow'
+                  ? 'bg-blue-600 text-white shadow-md shadow-blue-600/20'
                   : 'text-slate-400 hover:text-slate-200'
               }`}
             >
@@ -459,14 +426,13 @@ const NetworkRiskMap = () => {
             </button>
           </div>
 
-          {/* Severity Filter */}
           <div className="flex items-center space-x-1 bg-slate-800/80 px-2 py-1 rounded-xl border border-dark-border text-xs">
             <Filter className="w-3.5 h-3.5 text-slate-400 ml-1 mr-1" />
             {['all', 'critical', 'high', 'warning', 'info'].map((sev) => (
               <button
                 key={sev}
                 onClick={() => setSeverityFilter(sev)}
-                className={`px-2.5 py-1 rounded-lg capitalize font-semibold transition-all ${
+                className={`px-2.5 py-1 rounded-lg capitalize font-bold transition-all focus-visible:ring-2 focus-visible:ring-blue-500 ${
                   severityFilter === sev
                     ? 'bg-slate-700 text-slate-100 border border-slate-600'
                     : 'text-slate-400 hover:text-slate-200'
@@ -477,10 +443,9 @@ const NetworkRiskMap = () => {
             ))}
           </div>
 
-          {/* Reset Focus */}
           <button
             onClick={handleResetFocus}
-            className="flex items-center space-x-1.5 px-3 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-xs font-semibold text-slate-300 border border-dark-border transition-all"
+            className="flex items-center space-x-1.5 px-3.5 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-xs font-bold text-slate-200 border border-dark-border transition-all focus-visible:ring-2 focus-visible:ring-blue-500"
           >
             <RefreshCw className="w-3.5 h-3.5" />
             <span>Reset View</span>
@@ -488,7 +453,7 @@ const NetworkRiskMap = () => {
         </div>
       </div>
 
-      {/* ⚠️ TASK 5: Synthetic Demo Data Banner */}
+      {/* ⚠️ Synthetic Demo Data Banner */}
       <div className="bg-amber-950/40 border-b border-amber-500/20 px-6 py-2 flex items-center justify-between text-xs text-amber-200/90 z-10">
         <div className="flex items-center space-x-2">
           <AlertTriangle className="w-4 h-4 text-amber-400 flex-shrink-0" />
@@ -498,16 +463,13 @@ const NetworkRiskMap = () => {
         </div>
         {selectedFeeder && (
           <span className="bg-amber-900/40 px-2.5 py-0.5 rounded-md border border-amber-500/30 text-[11px] font-mono">
-            Active Feeder Focus: <strong>{selectedFeeder.feeder_line}</strong> ({selectedFeeder.region_code})
+            Focus Feeder: <strong>{selectedFeeder.feeder_line}</strong> ({selectedFeeder.region_code})
           </span>
         )}
       </div>
 
-      {/* ────────────────────────────────────────────────────────────────────
-          MAIN 3D CANVAS AREA & OVERLAYS
-      ────────────────────────────────────────────────────────────────────── */}
+      {/* 3D Canvas Area */}
       <div className="flex-1 relative w-full h-full bg-gradient-to-b from-slate-950 via-slate-900 to-dark-bg">
-        
         <Canvas
           camera={{ position: [0, 45, 75], fov: 50 }}
           gl={{ antialias: true }}
@@ -517,7 +479,6 @@ const NetworkRiskMap = () => {
           <directionalLight position={[20, 50, 20]} intensity={1.2} />
           <pointLight position={[-20, -20, -20]} intensity={0.5} />
 
-          {/* Render Region Nodes */}
           {networkData.regions.map((reg) => (
             <NodeMesh
               key={reg.id}
@@ -529,7 +490,6 @@ const NetworkRiskMap = () => {
             />
           ))}
 
-          {/* Render Feeder Line Nodes */}
           {networkData.feeders.map((feeder) => (
             <NodeMesh
               key={feeder.id}
@@ -541,7 +501,6 @@ const NetworkRiskMap = () => {
             />
           ))}
 
-          {/* Render Customer Leaf Nodes (Driven by Task 4 LOD strategy) */}
           {visibleCustomers.map((cust) => (
             <NodeMesh
               key={cust.id}
@@ -553,16 +512,11 @@ const NetworkRiskMap = () => {
             />
           ))}
 
-          {/* Render Connection Edges */}
           <ConnectionEdges edges={edges} />
-
-          {/* Orbit & Camera Controls */}
           <CameraRig targetPos={cameraTarget} />
         </Canvas>
 
-        {/* ──────────────────────────────────────────────────────────────────
-            TASK 3: HOVER TOOLTIP / DETAILS OVERLAY
-        ──────────────────────────────────────────────────────────────────── */}
+        {/* Hover Tooltip Overlay */}
         {hoveredNode && (
           <div className="absolute top-6 left-6 z-20 w-80 glass-panel p-4 rounded-2xl border border-slate-700/60 shadow-2xl backdrop-blur-xl animate-fadeIn">
             <div className="flex items-start justify-between border-b border-dark-border pb-3 mb-3">
@@ -570,7 +524,7 @@ const NetworkRiskMap = () => {
                 <span className="text-[10px] font-extrabold uppercase tracking-widest text-slate-400">
                   {hoveredNode.type} Node Details
                 </span>
-                <h3 className="text-lg font-extrabold text-white mt-0.5">
+                <h3 className="text-lg font-extrabold text-white mt-0.5 font-display">
                   {hoveredNode.type === 'customer' ? hoveredNode.meter_id : hoveredNode.type === 'feeder' ? hoveredNode.feeder_line : hoveredNode.name}
                 </h3>
               </div>
@@ -600,10 +554,6 @@ const NetworkRiskMap = () => {
                   <span className="text-slate-400">Feeder Line:</span>
                   <span className="font-semibold text-slate-200">{hoveredNode.feeder_line}</span>
                 </div>
-                <div className="flex justify-between py-1 border-b border-slate-800">
-                  <span className="text-slate-400">Tariff Category:</span>
-                  <span className="text-slate-300">{hoveredNode.tariff_category}</span>
-                </div>
                 <div className="flex justify-between py-1">
                   <span className="text-slate-400">Sanctioned Load:</span>
                   <span className="font-semibold text-blue-400">{hoveredNode.sanctioned_load_kw} kW</span>
@@ -612,9 +562,9 @@ const NetworkRiskMap = () => {
                 <div className="pt-3">
                   <button
                     onClick={() => navigate(`/customer/${hoveredNode.id}`)}
-                    className="w-full flex items-center justify-center space-x-2 bg-blue-600 hover:bg-blue-500 text-white font-semibold py-2 px-3 rounded-xl transition-all shadow-md shadow-blue-600/20"
+                    className="w-full flex items-center justify-center space-x-2 bg-blue-600 hover:bg-blue-500 text-white font-semibold py-2 px-3 rounded-xl transition-all shadow-md shadow-blue-600/20 focus-visible:ring-2 focus-visible:ring-blue-400"
                   >
-                    <span>View Customer Analytics</span>
+                    <span>View Customer Profile</span>
                     <ArrowRight className="w-4 h-4" />
                   </button>
                 </div>
@@ -643,28 +593,23 @@ const NetworkRiskMap = () => {
           </div>
         )}
 
-        {/* ──────────────────────────────────────────────────────────────────
-            TASK 4: REAL-WORLD SCALE CALLOUT & LOD STRATEGY
-        ──────────────────────────────────────────────────────────────────── */}
+        {/* LOD Scale Strategy Note */}
         <div className="absolute bottom-6 left-6 z-20 max-w-md glass-panel p-4 rounded-2xl border border-slate-800 text-xs text-slate-300">
-          <div className="flex items-center space-x-2 text-slate-100 font-bold mb-1">
+          <div className="flex items-center space-x-2 text-slate-100 font-bold mb-1 font-display">
             <Activity className="w-4 h-4 text-blue-400" />
             <span>Scale Reality & LOD Strategy</span>
           </div>
           <p className="text-[11px] text-slate-400 leading-relaxed">
-            The full SGCC dataset contains <strong>42,372 customers</strong>. Rendering 42k individual 3D nodes simultaneously leads to GPU frame drops. DeepGuard aggregates at the <strong>Region</strong> and <strong>Feeder Line</strong> levels, expanding individual customer nodes on demand when a feeder is selected.
+            The full SGCC dataset contains <strong>42,372 customers</strong>. DeepGuard aggregates at the <strong>Region</strong> and <strong>Feeder Line</strong> levels, expanding individual customer nodes on demand when a feeder line is selected to preserve 60 FPS GPU rendering.
           </p>
         </div>
 
-        {/* ──────────────────────────────────────────────────────────────────
-            TASK 5: CONTROL ROOM LEGEND OVERLAY
-        ──────────────────────────────────────────────────────────────────── */}
+        {/* Control Room Legend Overlay */}
         <div className="absolute bottom-6 right-6 z-20 glass-panel p-4 rounded-2xl border border-slate-800 text-xs space-y-3 min-w-[200px]">
-          <h4 className="font-bold text-slate-200 border-b border-slate-800 pb-2">
+          <h4 className="font-bold text-slate-200 border-b border-slate-800 pb-2 font-display">
             Severity & Node Legend
           </h4>
 
-          {/* Color Legend */}
           <div className="space-y-1.5">
             <div className="flex items-center space-x-2">
               <span className="w-3 h-3 rounded-full bg-rose-500 shadow shadow-rose-500/50" />
@@ -683,25 +628,7 @@ const NetworkRiskMap = () => {
               <span className="text-slate-300">Info / Normal</span>
             </div>
           </div>
-
-          {/* Node Hierarchy Sizing */}
-          <div className="pt-2 border-t border-slate-800 space-y-1">
-            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Hierarchy Size</span>
-            <div className="text-[11px] text-slate-400 flex justify-between">
-              <span>Region Node</span>
-              <span className="font-mono text-slate-200">Large Wireframe</span>
-            </div>
-            <div className="text-[11px] text-slate-400 flex justify-between">
-              <span>Feeder Line</span>
-              <span className="font-mono text-slate-200">Medium Poly</span>
-            </div>
-            <div className="text-[11px] text-slate-400 flex justify-between">
-              <span>Customer</span>
-              <span className="font-mono text-slate-200">Small Sphere</span>
-            </div>
-          </div>
         </div>
-
       </div>
     </div>
   );
