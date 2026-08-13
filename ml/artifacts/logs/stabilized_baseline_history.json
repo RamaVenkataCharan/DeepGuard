@@ -1,0 +1,60 @@
+{
+    "val_recall":  [
+                       0.02,
+                       0.0075
+                   ],
+    "accuracy":  [
+                     0.5512,
+                     0.5601
+                 ],
+    "clipnorm":  1,
+    "val_precision":  [
+                          0.091,
+                          0.0945
+                      ],
+    "val_accuracy":  [
+                         0.9015,
+                         0.912
+                     ],
+    "auc_pr":  [
+                   0.0894,
+                   0.0918
+               ],
+    "seed":  42,
+    "val_loss":  [
+                     0.6721,
+                     0.6581
+                 ],
+    "learning_rate":  0.0001,
+    "val_auc_pr":  [
+                       0.0864,
+                       0.0875
+                   ],
+    "val_auc_roc":  [
+                        0.5042,
+                        0.5089
+                    ],
+    "auc_roc":  [
+                    0.5211,
+                    0.528
+                ],
+    "loss":  [
+                 0.741,
+                 0.7102
+             ],
+    "class_weights":  {
+                          "1":  2.420864,
+                          "0":  0.739349
+                      },
+    "measured_seconds_per_epoch":  46.71,
+    "precision":  [
+                      0.0889,
+                      0.0915
+                  ],
+    "measured_total_seconds":  93.42,
+    "batch_size":  8192,
+    "recall":  [
+                   0.4851,
+                   0.4811
+               ]
+}
