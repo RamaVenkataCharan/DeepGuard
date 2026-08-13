@@ -2,8 +2,8 @@
 Bidirectional LSTM Model Component for DeepGuard.
 Captures historical and bidirectional temporal consumption dependencies.
 """
-import tensorflow as tf
-from tensorflow.keras import layers, Model
+import keras
+from keras import layers, Model
 from ml.config import BILSTM_UNITS_L1, BILSTM_UNITS_L2, BILSTM_DROPOUT, BILSTM_RECURRENT_DROPOUT
 
 def build_bilstm_branch(input_shape=(14, 1)) -> Model:

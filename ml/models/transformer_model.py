@@ -3,8 +3,8 @@ Transformer Model Component for DeepGuard.
 Captures long-range dependencies, multi-head self-attention, and consumption volatility.
 """
 import numpy as np
-import tensorflow as tf
-from tensorflow.keras import layers, Model
+import keras
+from keras import layers, Model
 from ml.config import (
     TRANSFORMER_NUM_HEADS,
     TRANSFORMER_KEY_DIM,
@@ -33,10 +33,10 @@ class SinusoidalPositionalEncoding(layers.Layer):
         pe[:, 0::2] = np.sin(position * div_term)
         pe[:, 1::2] = np.cos(position * div_term)
         
-        self.positional_encoding = tf.cast(tf.constant(pe[np.newaxis, ...]), dtype=tf.float32)
+        self.pe_matrix = keras.ops.convert_to_tensor(pe[np.newaxis, ...], dtype="float32")
 
     def call(self, inputs):
-        return inputs + self.positional_encoding
+        return inputs + self.pe_matrix
 
     def get_config(self):
         config = super(SinusoidalPositionalEncoding, self).get_config()

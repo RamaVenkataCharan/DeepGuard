@@ -2,8 +2,8 @@
 DeepGuard Fusion Architecture Component.
 Combines Bi-LSTM, Transformer, and Auxiliary Statistical Feature branches into a late-fusion ensemble.
 """
-import tensorflow as tf
-from tensorflow.keras import layers, Model
+import keras
+from keras import layers, Model, metrics, optimizers
 from ml.config import LEARNING_RATE, FUSION_DROPOUT
 from ml.models.bilstm_model import build_bilstm_branch
 from ml.models.transformer_model import build_transformer_branch
@@ -17,7 +17,7 @@ def build_auxiliary_branch(input_shape=(8,)) -> Model:
         input_shape (tuple): Shape of extracted statistical feature vector (8,).
 
     Returns:
-        tf.keras.Model: Feature extractor outputting a 16-dimensional feature representation.
+        keras.Model: Feature extractor outputting a 16-dimensional feature representation.
     """
     inputs = layers.Input(shape=input_shape, name="aux_feat_input")
     x = layers.Dense(16, activation="relu", name="aux_dense_1")(inputs)
@@ -30,31 +30,11 @@ def build_auxiliary_branch(input_shape=(8,)) -> Model:
 def build_hybrid_fusion_model(
     seq_shape=(14, 1),
     feat_shape=(8,),
-    learning_rate: float = LEARNING_RATE
+    learning_rate: float = LEARNING_RATE,
+    clipnorm: float = None
 ) -> Model:
     """
     Builds the complete DeepGuard Hybrid Dual-Branch + Auxiliary Fusion Classifier.
-
-    Architecture Design (Late Fusion):
-    - Branch 1: Bi-LSTM (Input: 14x1 sequence) -> 32d embedding
-    - Branch 2: Transformer (Input: 14x1 sequence) -> 32d embedding
-    - Branch 3: Auxiliary Feature Network (Input: 8d vector) -> 16d embedding
-    - Fusion: Concatenation (80d joint embedding space)
-    - Classification Head: Dense(32) -> BN -> Dropout(0.3) -> Dense(16) -> Sigmoid(1)
-
-    Why Late Fusion Concatenation over Probability Averaging:
-    Probability averaging assumes independent branch errors. Late fusion concatenation
-    preserves joint cross-branch feature interactions (e.g. cross-correlating a Transformer
-    attention spike with Bi-LSTM temporal variance and auxiliary kurtosis), drastically
-    reducing false positive theft alarms.
-
-    Args:
-        seq_shape (tuple): Shape of raw 3D input sequence (14, 1).
-        feat_shape (tuple): Shape of 2D statistical feature vector (8,).
-        learning_rate (float): Adam optimizer learning rate.
-
-    Returns:
-        tf.keras.Model: Compiled Keras hybrid fusion model.
     """
     # Define Inputs
     seq_input = layers.Input(shape=seq_shape, name="sequence_input")
@@ -87,16 +67,16 @@ def build_hybrid_fusion_model(
     # Compile Hybrid Model
     model = Model(inputs=[seq_input, feat_input], outputs=outputs, name="deepguard_hybrid_fusion")
     
-    optimizer = tf.keras.optimizers.Adam(learning_rate=learning_rate)
+    optimizer = optimizers.Adam(learning_rate=learning_rate, clipnorm=clipnorm)
     model.compile(
         optimizer=optimizer,
         loss="binary_crossentropy",
         metrics=[
             "accuracy",
-            tf.keras.metrics.Precision(name="precision"),
-            tf.keras.metrics.Recall(name="recall"),
-            tf.keras.metrics.AUC(name="auc_pr", curve="PR"),
-            tf.keras.metrics.AUC(name="auc_roc", curve="ROC")
+            metrics.Precision(name="precision"),
+            metrics.Recall(name="recall"),
+            metrics.AUC(name="auc_pr", curve="PR"),
+            metrics.AUC(name="auc_roc", curve="ROC")
         ]
     )
 
